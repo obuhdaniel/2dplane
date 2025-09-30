@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Cartesian Plane</title>
+    <title>Interactive Cartesian Plane - Mobile Viewer</title>
     <style>
         * {
             margin: 0;
@@ -32,6 +32,9 @@
             padding: 12px 20px;
             border-bottom: 1px solid #3e3e42;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         h1 {
@@ -50,12 +53,13 @@
             display: flex;
             flex: 1;
             overflow: hidden;
+            flex-direction: column;
         }
         
         .side-panel {
-            width: 280px;
+            width: 100%;
             background: #252526;
-            border-right: 1px solid #3e3e42;
+            border-bottom: 1px solid #3e3e42;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -209,7 +213,7 @@
         
         .canvas-container {
             flex: 1;
-            padding: 20px;
+            padding: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -288,9 +292,90 @@
             margin-bottom: 4px;
         }
         
-        @media (max-width: 1024px) {
+        .mobile-controls {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: #252526;
+            border-top: 1px solid #3e3e42;
+        }
+        
+        .mobile-controls button {
+            width: auto;
+            margin: 0;
+            padding: 8px 15px;
+        }
+        
+        .rotate-button {
+            background: #0e639c;
+        }
+        
+        .rotate-button:hover {
+            background: #1177bb;
+        }
+        
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .mobile-controls {
+                display: flex;
+            }
+            
+            .toolbar {
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+            
+            .toolbar-item {
+                flex: 1;
+                min-width: 100px;
+                justify-content: center;
+            }
+        }
+        
+        /* Landscape mode */
+        .landscape .app-container {
+            flex-direction: row;
+        }
+        
+        .landscape .side-panel {
+            width: 280px;
+            border-right: 1px solid #3e3e42;
+            border-bottom: none;
+            height: 100%;
+        }
+        
+        .landscape .main-panel {
+            flex: 1;
+        }
+        
+        .landscape .canvas-container {
+            padding: 15px;
+        }
+        
+        /* Desktop styles */
+        @media (min-width: 769px) {
+            .app-container {
+                flex-direction: row;
+            }
+            
             .side-panel {
-                width: 240px;
+                width: 280px;
+                border-right: 1px solid #3e3e42;
+                border-bottom: none;
+                height: 100%;
+            }
+            
+            .main-panel {
+                flex: 1;
+            }
+            
+            .mobile-controls {
+                display: none;
             }
         }
     </style>
@@ -298,12 +383,18 @@
 <body>
     <div class="container">
         <header>
-            <h1>CPE556 - Interactive Cartesian Plane</h1>
-            <p class="subtitle">Scientific Coordinate System and Transformation Tool</p>
+            <div>
+                <h1>CPE556 - Interactive Cartesian Plane</h1>
+                <p class="subtitle">Scientific Coordinate System and Transformation Tool</p>
+            </div>
+            <div class="mobile-controls">
+                <button id="toggle-panels" class="secondary">Toggle Panels</button>
+                <button id="rotate-view" class="rotate-button">Rotate View</button>
+            </div>
         </header>
         
         <div class="app-container">
-            <div class="side-panel">
+            <div class="side-panel" id="left-panel">
                 <div class="panel-section">
                     <h2>Point Input</h2>
                     <div class="input-group">
@@ -355,7 +446,7 @@
                 </div>
             </div>
             
-            <div class="side-panel" style="border-right: none; border-left: 1px solid #3e3e42;">
+            <div class="side-panel" id="right-panel" style="border-right: none; border-left: 1px solid #3e3e42;">
                 <div class="panel-section">
                     <h2>Transformations</h2>
                 </div>
@@ -428,8 +519,13 @@
         const selectedPoints = new Set();
         
         const scale = 40;
-        const originX = canvas.width / 2;
-        const originY = canvas.height / 2;
+        let originX = canvas.width / 2;
+        let originY = canvas.height / 2;
+
+        // Mobile-specific variables
+        let isLandscape = false;
+        let leftPanelVisible = true;
+        let rightPanelVisible = true;
         
         function drawGrid() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -534,6 +630,54 @@
             document.getElementById('selected-count').textContent = selectedPoints.size;
         }
         
+        // Mobile-specific functions
+        function toggleLandscape() {
+            isLandscape = !isLandscape;
+            if (isLandscape) {
+                document.body.classList.add('landscape');
+                document.getElementById('rotate-view').textContent = 'Portrait View';
+            } else {
+                document.body.classList.remove('landscape');
+                document.getElementById('rotate-view').textContent = 'Landscape View';
+            }
+            // Adjust canvas size for better mobile experience
+            adjustCanvasSize();
+            render();
+        }
+        
+        function togglePanels() {
+            if (window.innerWidth <= 768) {
+                leftPanelVisible = !leftPanelVisible;
+                rightPanelVisible = !rightPanelVisible;
+                
+                document.getElementById('left-panel').style.display = leftPanelVisible ? 'flex' : 'none';
+                document.getElementById('right-panel').style.display = rightPanelVisible ? 'flex' : 'none';
+                
+                document.getElementById('toggle-panels').textContent = 
+                    leftPanelVisible ? 'Hide Controls' : 'Show Controls';
+            }
+        }
+        
+        function adjustCanvasSize() {
+            const container = document.querySelector('.canvas-container');
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            
+            // Set canvas size to fit container while maintaining aspect ratio
+            const size = Math.min(containerWidth, containerHeight) * 0.9;
+            canvas.width = size;
+            canvas.height = size;
+            
+            // Update origin coordinates
+            originX = canvas.width / 2;
+            originY = canvas.height / 2;
+        }
+        
+        // Event listeners for mobile controls
+        document.getElementById('rotate-view').addEventListener('click', toggleLandscape);
+        document.getElementById('toggle-panels').addEventListener('click', togglePanels);
+        
+        // Original event listeners
         document.getElementById('add-point').addEventListener('click', () => {
             const x = parseFloat(document.getElementById('x-coord').value) || 0;
             const y = parseFloat(document.getElementById('y-coord').value) || 0;
@@ -648,6 +792,13 @@
             }
         });
         
+        // Initialize
+        window.addEventListener('resize', () => {
+            adjustCanvasSize();
+            render();
+        });
+        
+        adjustCanvasSize();
         render();
     </script>
 </body>
